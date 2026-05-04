@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS Pro — Générateur de Licences</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0f1117;color:#e8eaf0;font-family:"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 16px;}
+h1{font-size:22px;color:#00c9a7;margin-bottom:4px;}
+.sub{font-size:12px;color:#6b7280;margin-bottom:30px;}
+.card{background:#1a1d27;border:1px solid #2e3347;border-radius:12px;padding:20px;width:100%;max-width:480px;margin-bottom:16px;}
+.ct{font-size:13px;font-weight:700;color:#00c9a7;margin-bottom:14px;}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;}
+input,select{background:#13161f;border:1px solid #2e3347;border-radius:8px;color:#e8eaf0;font-size:14px;padding:10px 12px;outline:none;width:100%;}
+input:focus,select:focus{border-color:#00c9a7;}
+.btn{border:none;border-radius:8px;font-size:13px;font-weight:600;padding:11px 16px;cursor:pointer;width:100%;margin-top:4px;}
+.bt{background:#00c9a7;color:#0a0e16;}
+.bgh{background:#22263a;color:#e8eaf0;border:1px solid #2e3347;margin-top:8px;}
+.result{background:#13161f;border:1px solid #00c9a7;border-radius:8px;padding:14px;font-family:"Courier New",monospace;font-size:16px;letter-spacing:2px;color:#00c9a7;word-break:break-all;text-align:center;cursor:pointer;user-select:all;}
+.result-info{font-size:11px;color:#6b7280;text-align:center;margin-top:6px;}
+.copied{background:#4ade8015;border-color:#4ade80;color:#4ade80;}
+.warn{background:#f8717115;border:1px solid #f87171;border-radius:8px;padding:10px 14px;font-size:12px;color:#f87171;margin-top:12px;}
+.history{max-height:280px;overflow-y:auto;}
+.hitem{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2e3347;font-size:12px;}
+.hitem:last-child{border-bottom:none;}
+.hkey{font-family:"Courier New",monospace;color:#00c9a7;font-size:13px;letter-spacing:1px;}
+.hinfo{color:#6b7280;font-size:11px;text-align:right;}
+.del-k{background:none;border:none;color:#6b7280;cursor:pointer;font-size:14px;padding:2px 6px;}
+.del-k:hover{color:#f87171;}
+.badge{display:inline-block;padding:2px 7px;border-radius:100px;font-size:10px;font-weight:700;}
+.active{background:#4ade8015;color:#4ade80;}
+.expired{background:#f8717115;color:#f87171;}
+.expiring{background:#fbbf2415;color:#fbbf24;}
+</style>
+</head>
+<body>
+<h1>⚡ POS Pro — Licences</h1>
+<div class="sub">Outil privé — usage exclusif du propriétaire</div>
+
+<div class="card">
+  <div class="ct">🔑 Générer une nouvelle licence</div>
+  <div class="fg">
+    <label>Nom du client</label>
+    <input type="text" id="g-name" placeholder="Ahmed Ben Ali">
+  </div>
+  <div class="fg">
+    <label>URL du site client</label>
+    <input type="text" id="g-url" placeholder="votre-nom.github.io/pos-salem" style="text-transform:lowercase">
+    <div style="font-size:11px;color:#6b7280;margin-top:3px">Sans https:// — ex: username.github.io/pos-ahmed</div>
+  </div>
+  <div class="fg">
+    <label>Durée</label>
+    <select id="g-dur">
+      <option value="3">🆓 3 jours (Essai)</option>
+      <option value="7">🆓 7 jours (Essai)</option>
+      <option value="14">🆓 14 jours (Essai)</option>
+      <option value="30">30 jours (1 mois)</option>
+      <option value="90">90 jours (3 mois)</option>
+      <option value="180">180 jours (6 mois)</option>
+      <option value="365" selected>365 jours (1 an)</option>
+      <option value="730">730 jours (2 ans)</option>
+      <option value="9999">Illimitée</option>
+    </select>
+  </div>
+  <button class="btn bt" onclick="generateKey()">⚡ Générer la licence</button>
+
+  <div id="result-box" style="display:none;margin-top:16px">
+    <div class="result" id="key-display" onclick="copyKey()">—</div>
+    <div class="result-info" id="key-info"></div>
+    <button class="btn bgh" onclick="copyKey()">📋 Copier la licence</button>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div class="ct" style="margin:0">📋 Licences générées</div>
+    <span id="count-badge" style="font-size:11px;color:#6b7280"></span>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button class="btn bt" style="flex:1;padding:8px;font-size:12px" onclick="exportHist()">📤 Exporter</button>
+    <button class="btn bgh" style="flex:1;padding:8px;font-size:12px" onclick="document.getElementById('imp-file').click()">📥 Importer</button>
+    <input type="file" id="imp-file" accept=".json" onchange="importHist(this)" style="display:none">
+  </div>
+  <div class="history" id="history-list">
+    <div style="color:#6b7280;font-size:12px;text-align:center;padding:16px">Aucune licence générée</div>
+  </div>
+</div>
+
+<div class="warn">
+  ⚠️ <b>Important:</b> Ne partagez jamais cet outil. Gardez ce fichier sur votre téléphone uniquement.
+  La clé secrète est intégrée ici — si quelqu'un y accède il peut générer des licences gratuitement.
+</div>
+
+<script>
+// ═══ CLÉ SECRÈTE — NE JAMAIS PARTAGER ═══
+// Cette clé doit être identique dans index.html
+var SECRET = 'POS_PRO_SECRET_CLIENT_2009';
+
+// ═══ Encodage Base62 ═══
+var B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function toB62(n, len){
+  var r='';
+  while(n>0){r=B62[n%36]+r;n=Math.floor(n/36);}
+  while(r.length<len) r='0'+r;
+  return r.toUpperCase().slice(0,len);
+}
+function fromB62(s){
+  var n=0;
+  s=s.toUpperCase().trim();
+  for(var i=0;i<s.length;i++){
+    var idx=B62.indexOf(s[i]);
+    if(idx<0) return NaN;
+    n=n*36+idx;
+  }
+  return n;
+}
+
+// ═══ Génération de clé ═══
+async function sha256Short(msg){
+  var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+
+async function generateKey(){
+  var name=document.getElementById('g-name').value.trim();
+  var dur=parseInt(document.getElementById('g-dur').value);
+  var url=document.getElementById('g-url').value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/$/,'');
+  if(!name){alert('Entrez le nom du client');return;}
+  if(!url){alert('Entrez l\'URL du site client');return;}
+
+  // Calcul date expiration
+  var expTs = dur===9999 ? 99999999 : Math.floor((Date.now()/86400000) + dur);
+
+  // Partie 1: expiration encodée
+  var p1 = toB62(expTs, 6);
+
+  // Partie 3: identifiant client lisible (4 chars)
+  var nameNorm = name.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
+  var p3 = nameNorm.slice(0,4).padEnd(4,'X');
+
+  // Partie 2: checksum (secret + p1 + p3 + url) — URL lie la licence au site
+  var payload = SECRET + p1 + p3 + url;
+  var h = await sha256Short(payload);
+  var p2 = h.slice(0,8).toUpperCase();
+
+  var key = 'POS-'+p1+'-'+p3+'-'+p2;
+
+  // Affichage
+  document.getElementById('key-display').textContent = key;
+  document.getElementById('key-display').className = 'result';
+  var expDate = dur===9999 ? 'Illimitée' : new Date(expTs*86400000).toLocaleDateString('fr-FR');
+  document.getElementById('key-info').textContent = '📅 Expire: '+expDate+' · '+name+' · '+url;
+  document.getElementById('result-box').style.display='block';
+
+  // Sauvegarde historique
+  var hist = JSON.parse(localStorage.getItem('keygen_hist')||'[]');
+  hist.unshift({key:key, name:name, dur:dur, exp:expTs, url:url, created:Date.now()});
+  localStorage.setItem('keygen_hist', JSON.stringify(hist));
+  renderHistory();
+}
+
+function copyKey(){
+  var k=document.getElementById('key-display').textContent;
+  navigator.clipboard.writeText(k).then(function(){
+    document.getElementById('key-display').className='result copied';
+    document.getElementById('key-display').textContent='✅ Copié !';
+    setTimeout(function(){
+      document.getElementById('key-display').className='result';
+      document.getElementById('key-display').textContent=k;
+    },1500);
+  });
+}
+
+function renderHistory(){
+  var hist=JSON.parse(localStorage.getItem('keygen_hist')||'[]');
+  var el=document.getElementById('history-list');
+  document.getElementById('count-badge').textContent=hist.length+' licence(s)';
+  if(!hist.length){
+    el.innerHTML='<div style="color:#6b7280;font-size:12px;text-align:center;padding:16px">Aucune licence générée</div>';
+    return;
+  }
+  var today=Math.floor(Date.now()/86400000);
+  el.innerHTML=hist.map(function(h,i){
+    var remaining=h.exp===99999999?9999:h.exp-today;
+    var badge=remaining>30?'active':remaining>0?'expiring':'expired';
+    var badgeTxt=h.exp===99999999?'Illimitée':remaining>0?remaining+'j restants':'Expirée';
+    var isTrial=h.dur<=14;
+    return '<div class="hitem">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:5px">'
+      +'<div class="hkey" style="font-size:11px">'+h.key+'</div>'
+      +(isTrial?'<span style="background:#fbbf2420;color:#fbbf24;border-radius:4px;font-size:9px;padding:1px 5px;font-weight:700;white-space:nowrap">ESSAI</span>':'')
+      +'</div>'
+      +'<div style="color:#9ca3af;font-size:11px;margin-top:2px">'+h.name+' · '+h.dur+' jours'+(h.url?' · <span style="color:#00c9a7">'+h.url+'</span>':'')+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+      +'<span class="badge '+badge+'">'+badgeTxt+'</span>'
+      +'<button class="del-k" onclick="delKey('+i+')">🗑</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function exportHist(){
+  var hist=JSON.parse(localStorage.getItem('keygen_hist')||'[]');
+  if(!hist.length){alert('Aucune licence à exporter');return;}
+  var data=JSON.stringify({pos_licenses:hist, exported:new Date().toISOString()},null,2);
+  var blob=new Blob([data],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='POS_Licences_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function importHist(input){
+  var file=input.files[0];
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var d=JSON.parse(e.target.result);
+      if(!d.pos_licenses||!Array.isArray(d.pos_licenses)){
+        alert('Fichier invalide');return;
+      }
+      var existing=JSON.parse(localStorage.getItem('keygen_hist')||'[]');
+      // Merge: éviter les doublons par key
+      var keys=new Set(existing.map(function(h){return h.key;}));
+      var added=0;
+      d.pos_licenses.forEach(function(h){
+        if(!keys.has(h.key)){existing.push(h);keys.add(h.key);added++;}
+      });
+      localStorage.setItem('keygen_hist',JSON.stringify(existing));
+      renderHistory();
+      alert(added+' licence(s) importée(s) ✅');
+    }catch(err){alert('Fichier invalide');}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function delKey(i){
+  var hist=JSON.parse(localStorage.getItem('keygen_hist')||'[]');
+  hist.splice(i,1);
+  localStorage.setItem('keygen_hist',JSON.stringify(hist));
+  renderHistory();
+}
+
+renderHistory();
+</script>
+</body>
+</html>
